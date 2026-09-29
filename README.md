@@ -77,6 +77,15 @@ claude mcp add --transport http mi-fitness https://mi-fitness.tarassov.me/mcp \
 
 Эндпоинты прокси: `/mcp` (streamable HTTP), `/sse` (устаревший транспорт), `/status` (используется пробами).
 
+## Дёрнуть данные без MCP-клиента
+
+```bash
+MCP_AUTH=claude:ПАРОЛЬ scripts/mcp-curl.sh query_daily_activity \
+  '{"start_date":"2026-09-22","end_date":"2026-09-29"}'
+```
+
+Три запроса подряд, иначе никак: streamable HTTP выдаёт сессию на `initialize`, а вызовы принимает только после `notifications/initialized`. Ответ приходит либо обычным JSON, либо кадром SSE, скрипт разбирает оба. Список инструментов даёт `tools/list` тем же способом.
+
 ## Эксплуатация
 
 ```bash
