@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mi-fitness-sync
+  namespace: mi-fitness
+  labels:
+    app.kubernetes.io/name: mi-fitness-bridge
+    app.kubernetes.io/component: sync
+spec:
+  schedule: "20 3 * * *"
+  timeZone: Asia/Almaty
+  # One writer at a time: a second sync would fight the first over the SQLite file.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 172800
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: mi-fitness-bridge
+            app.kubernetes.io/component: sync
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: sync
+              image: ghcr.io/moveeeax/mi-fitness-bridge:latest
+              imagePullPolicy: IfNotPresent
+              args: ["sync-window"]
+              env:
+                - name: MI_FITNESS_REGION
+                  value: cn
+                - name: MI_FITNESS_LOOKBACK_DAYS
+                  # Re-reads the last few days so upstream corrections land too.
+                  value: "4"
+              envFrom:
+                - secretRef:
+                    name: mi-fitness-credentials
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: [ALL]
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 96Mi
+                limits:
+                  memory: 384Mi
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: mi-fitness-data
+            - name: tmp
+              emptyDir: {}

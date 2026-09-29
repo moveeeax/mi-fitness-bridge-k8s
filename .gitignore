@@ -1,0 +1,6 @@
+exports/
+*.db
+*.db-wal
+*.db-shm
+auth.htpasswd
+secret.yaml

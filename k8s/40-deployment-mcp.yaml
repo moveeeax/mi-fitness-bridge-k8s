@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mi-fitness-mcp
+  namespace: mi-fitness
+  labels:
+    app.kubernetes.io/name: mi-fitness-bridge
+    app.kubernetes.io/component: mcp
+spec:
+  replicas: 1
+  # Recreate, not RollingUpdate: an RWO volume and a single-writer SQLite file
+  # cannot be held by the old and the new pod at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mi-fitness-bridge
+      app.kubernetes.io/component: mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mi-fitness-bridge
+        app.kubernetes.io/component: mcp
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp
+          image: ghcr.io/moveeeax/mi-fitness-bridge:latest
+          imagePullPolicy: IfNotPresent
+          args: ["proxy"]
+          env:
+            - name: MI_FITNESS_REGION
+              value: cn
+            - name: MCP_HTTP_PORT
+              value: "8080"
+          envFrom:
+            - secretRef:
+                name: mi-fitness-credentials
+          ports:
+            - name: http
+              containerPort: 8080
+          # /status is mcp-proxy's own endpoint; the bridge behind it is a child process.
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 96Mi
+            limits:
+              memory: 384Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mi-fitness-data
+        - name: tmp
+          emptyDir: {}

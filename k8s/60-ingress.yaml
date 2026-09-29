@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mi-fitness-mcp
+  namespace: mi-fitness
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # SSE keeps the connection open and must not be buffered.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # mcp-proxy has no server-side auth of its own, so the edge does it.
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: mi-fitness-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "mi-fitness"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [mi-fitness.tarassov.me]
+      secretName: mi-fitness-mcp-tls
+  rules:
+    - host: mi-fitness.tarassov.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mi-fitness-mcp
+                port:
+                  name: http

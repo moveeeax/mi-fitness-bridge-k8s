@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mi-fitness-data
+  namespace: mi-fitness
+  labels:
+    app.kubernetes.io/name: mi-fitness-bridge
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes
+  resources:
+    requests:
+      # Hetzner volumes start at 10Gi; the SQLite cache needs a fraction of it.
+      storage: 10Gi

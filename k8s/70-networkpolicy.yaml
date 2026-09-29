@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mi-fitness
+  namespace: mi-fitness
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mi-fitness-bridge
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # account.xiaomi.com and hlth.io.mi.com; plain NetworkPolicy cannot match FQDNs,
+    # so this is "HTTPS anywhere". Tighten with a CiliumNetworkPolicy toFQDNs if needed.
+    - ports:
+        - port: 443
+          protocol: TCP
