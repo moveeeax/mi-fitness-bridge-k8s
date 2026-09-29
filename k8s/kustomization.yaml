@@ -11,4 +11,4 @@ resources:
   - 70-networkpolicy.yaml
 images:
   - name: ghcr.io/moveeeax/mi-fitness-bridge
-    newTag: sha-221fa8b
+    newTag: sha-ef88d5e

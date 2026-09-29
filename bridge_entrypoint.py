@@ -56,15 +56,21 @@ def seed_credentials() -> None:
 
     # Pin database_path in the config too, so the stored value and the
     # MI_FITNESS_DB_PATH override can never point at two different files.
-    db_path = _db_path()
-    config_stale = (
-        not get_config_path().exists()
-        or load_config().mode != "mi_fitness_cloud"
-        or load_config().database_path != db_path
-    )
-    if config_stale:
-        save_config(Config(mode="mi_fitness_cloud", region=region, database_path=db_path))
-        _log(f"wrote config, region={region}, db={db_path}")
+    # The per-type timeout matters for backfills: upstream wraps every data type
+    # in asyncio.wait_for(sync_type_timeout_seconds), and a multi-month range of
+    # heart-rate samples fails the default 180s with an empty error message.
+    desired = Config(mode="mi_fitness_cloud", region=region, database_path=_db_path())
+    if timeout := os.environ.get("MI_FITNESS_SYNC_TYPE_TIMEOUT"):
+        desired.sync_type_timeout_seconds = float(timeout)
+    if chunk := os.environ.get("MI_FITNESS_CHUNK_DAYS"):
+        desired.sync_chunk_days = int(chunk)
+    current = load_config() if get_config_path().exists() else None
+    if current is None or current.model_dump() != desired.model_dump():
+        save_config(desired)
+        _log(
+            f"wrote config: region={region}, db={desired.database_path}, "
+            f"type_timeout={desired.sync_type_timeout_seconds}s, chunk={desired.sync_chunk_days}d"
+        )
 
 
 def enable_wal() -> None:
