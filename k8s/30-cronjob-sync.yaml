@@ -26,6 +26,16 @@ spec:
             app.kubernetes.io/component: sync
         spec:
           restartPolicy: Never
+          # The SQLite cache lives on an RWO volume: a pod on another node hits
+          # Multi-Attach. Land on whichever node currently holds the MCP pod.
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      app.kubernetes.io/name: mi-fitness-bridge
+                      app.kubernetes.io/component: mcp
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000

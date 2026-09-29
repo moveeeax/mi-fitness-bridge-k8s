@@ -54,9 +54,17 @@ def seed_credentials() -> None:
         save_mi_fitness_token(user_id, token)
         _log(f"seeded credentials from the environment (reseed={reseed})")
 
-    if not get_config_path().exists() or load_config().mode != "mi_fitness_cloud":
-        save_config(Config(mode="mi_fitness_cloud", region=region))
-        _log(f"wrote config, region={region}")
+    # Pin database_path in the config too, so the stored value and the
+    # MI_FITNESS_DB_PATH override can never point at two different files.
+    db_path = _db_path()
+    config_stale = (
+        not get_config_path().exists()
+        or load_config().mode != "mi_fitness_cloud"
+        or load_config().database_path != db_path
+    )
+    if config_stale:
+        save_config(Config(mode="mi_fitness_cloud", region=region, database_path=db_path))
+        _log(f"wrote config, region={region}, db={db_path}")
 
 
 def enable_wal() -> None:
@@ -80,7 +88,14 @@ def proxy_command() -> list[str]:
     port = os.environ.get("MCP_HTTP_PORT", "8080")
     host = os.environ.get("MCP_HTTP_HOST", "0.0.0.0")
     extra = os.environ.get("MCP_PROXY_ARGS", "").split()
-    return ["mcp-proxy", "--host", host, "--port", port, *extra, "--", BRIDGE, "serve"]
+    # --pass-environment is mandatory, not a nicety: mcp-proxy spawns the stdio
+    # child with an empty environment by default, and the bridge would then miss
+    # XDG_CONFIG_HOME, MI_FITNESS_DB_PATH and the keyring backend, reporting
+    # "not_configured" while sitting on a perfectly good volume.
+    return [
+        "mcp-proxy", "--host", host, "--port", port, "--pass-environment",
+        *extra, "--", BRIDGE, "serve",
+    ]
 
 
 def main() -> None:
