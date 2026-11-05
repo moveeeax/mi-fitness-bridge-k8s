@@ -41,6 +41,10 @@ jobs:
           tags: |
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
+          # The image bundles the AGPL upstream; without this the label is taken
+          # from the repo license (MIT, wrapper code only) and overrides the Dockerfile.
+          labels: |
+            org.opencontainers.image.licenses=AGPL-3.0-only
 
       - uses: docker/build-push-action@v7
         with:
