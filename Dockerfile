@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
-ARG PYTHON_VERSION=3.12
-ARG BRIDGE_REF=096f2bc
+# 3.15 waits for pydantic-core cp315 wheels; without them pip falls back to a Rust build.
+ARG PYTHON_VERSION=3.14
+# Upstream main past v0.3.3: muscle-mass-in-kg fix and workout detail sync.
+ARG BRIDGE_REF=91ea4f1
 
 FROM python:${PYTHON_VERSION}-slim AS build
 ARG BRIDGE_REF
@@ -14,7 +16,7 @@ ENV PATH=/opt/venv/bin:$PATH
 RUN pip install --no-cache-dir \
       "git+https://github.com/shkyyy18/mi_fitness_data_bridge.git@${BRIDGE_REF}" \
       "keyrings.alt==5.0.2" \
-      "mcp-proxy==0.12.0"
+      "mcp-proxy==0.14.0"
 
 FROM python:${PYTHON_VERSION}-slim
 ARG BRIDGE_REF
