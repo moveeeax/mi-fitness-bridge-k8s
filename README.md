@@ -106,3 +106,7 @@ make db-pull    # забрать SQLite на мак для локального 
 ## Лицензия
 
 Код этого репозитория (Dockerfile, entrypoint, манифесты, скрипты) распространяется по [MIT](LICENSE). Собранный образ содержит апстрим под AGPL-3.0-only, поэтому на сам образ распространяются условия AGPL, отсюда и метка `org.opencontainers.image.licenses` в Dockerfile.
+
+---
+
+**Archived on 2026-11-05.** it deploys the Python mi_fitness_data_bridge (SQLite on a PVC, nightly CronJob, MCP over mcp-proxy behind nginx basic auth) to the old talos-nbg1 cluster. That bridge was replaced first by mi-fitness-api and then by the life-os-cpp fitness module, whose design doc plans to remove the `mi-fitness` namespace, PVC and image after the parity check. Its ingress host no longer resolves (prior audit), and a Xiaomi passToken can only have one holder, so running it next to life-os-cpp would break the sync there. No features proposed.
